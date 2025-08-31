@@ -59,7 +59,7 @@ SmartBookkeeper/
 │   │       └── auth.py      # 认证相关 API
 │   ├── services/
 │   │   ├── wecom_service.py     # 企业微信服务封装
-│   │   ├── ocr_service.py       # OCR 服务封装
+│   │   ├── image_recognition_service.py  # 图片识别服务封装
 │   │   └── ai_service.py        # AI 服务封装
 │   ├── templates/
 │   │   └── index.html       # 前端页面模板
@@ -280,7 +280,7 @@ start.bat
 
 1. 选择一个大语言模型服务提供商（如 OpenAI、百度文心一言等）。
 2. 注册账号并获取 API Key。
-3. 在 `app/services/ocr_service.py` 中修改 API 调用代码，以适应所选 AI 服务的 API。
+3. 在 `app/services/image_recognition_service.py` 中修改 API 调用代码，以适应所选 AI 服务的 API。
 
 ### 3. 使用 Web 界面
 

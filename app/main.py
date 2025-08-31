@@ -37,7 +37,7 @@ app = FastAPI(
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# 挂载log目录用于OCR API访问临时图片文件
+# 挂载log目录用于图片识别服务访问临时图片文件
 app.mount("/log", StaticFiles(directory="log"), name="log")
 
 # 配置模板目录

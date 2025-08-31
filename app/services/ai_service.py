@@ -9,14 +9,14 @@ class AIService:
         self.base_url = settings.AI_API_BASE_URL
         self.model_name = settings.AI_MODEL_NAME
     
-    async def process_receipt_to_json(self, ocr_text: str) -> Dict[str, Any]:
-        """将OCR结果处理成结构化的JSON记账数据"""
+    async def process_text_to_transaction(self, text: str) -> Dict[str, Any]:
+        """将文本处理成结构化的JSON记账数据"""
         
         # 构建提示词
         prompt = f"""
-        请从以下OCR识别的文本中提取记账信息，并返回JSON格式的数据：
+        请从以下文本中提取记账信息，并返回JSON格式的数据：
         
-        {ocr_text}
+        {text}
         
         请提取以下信息（如果存在）：
         - amount: 金额（数字类型）
@@ -26,7 +26,7 @@ class AIService:
         - description: 摘要描述
         
         如果某项信息无法确定，请设为null。
-        只返回JSON格式的数据，不要包含其他解释文本。
+        只返回JSON格式的数据，不要包含任何解释文本。
         """
         
         # 构建请求数据

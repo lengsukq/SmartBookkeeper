@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  smartbookkeeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartbookkeeper
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./log:/app/log
+    restart: unless-stopped
+    env_file:
+      - .env

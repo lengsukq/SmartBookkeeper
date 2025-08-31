@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, Optional
 from app.database import get_db
 from app.services.wecom_service import wecom_service
-from app.services.ocr_service import ocr_service
+from app.services.image_recognition_service import image_recognition_service
 from app.crud import create_transaction
 from app.schemas import TransactionCreate
 from app.config import settings
@@ -189,13 +189,13 @@ async def handle_wecom_message(
                 f.write(image_data)
             logger.info(f"图片已保存到: {filename}")
             
-            # 调用OCR服务直接获取结构化的记账数据，传递图片路径避免重复保存
-            ocr_result = await ocr_service.recognize_text(image_data, filename)
+            # 调用图片识别服务直接获取结构化的记账数据，传递图片路径避免重复保存
+            recognition_result = await image_recognition_service.recognize_text(image_data, filename)
             
-            # 检查OCR识别是否成功
-            if not ocr_result.get('success', True):  # 默认为True以兼容旧格式
-                # OCR识别失败，向用户发送错误消息
-                error_msg = ocr_result.get('error', 'OCR识别失败，无法识别图片中的文本')
+            # 检查图片识别是否成功
+            if not recognition_result.get('success', True):  # 默认为True以兼容旧格式
+                # 图片识别失败，向用户发送错误消息
+                error_msg = recognition_result.get('error', '图片识别失败，无法识别图片中的文本')
                 await wecom_service.send_text_message(user_id, f"识别失败：{error_msg}")
             else:
                 # OCR识别成功，处理交易数据
