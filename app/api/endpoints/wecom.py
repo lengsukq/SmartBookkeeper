@@ -141,6 +141,32 @@ async def handle_wecom_message(
         # 检查消息类型
         msg_type = message_data.get("MsgType")
         
+        # 消息去重检查
+        msg_id = message_data.get("MsgId")
+        if msg_id and msg_id in processed_messages:
+            # 如果消息已处理过，直接返回成功响应，避免重复处理
+            logger.info(f"消息已处理过，跳过重复处理: msg_id={msg_id}")
+            response_data = {"status": "success", "message": "Message already processed"}
+            encrypted_response = wecom_service.encrypt_message(response_data)
+            # 构建符合企业微信要求的XML响应格式
+            xml_response = f"""<xml>
+<Encrypt><![CDATA[{encrypted_response}]]></Encrypt>
+<MsgSignature><![CDATA[{msg_signature}]]></MsgSignature>
+<TimeStamp>{timestamp}</TimeStamp>
+<Nonce><![CDATA[{nonce}]]></Nonce>
+</xml>"""
+            return Response(content=xml_response, media_type="application/xml")
+        
+        # 记录已处理的消息ID
+        if msg_id:
+            processed_messages[msg_id] = datetime.now().isoformat()
+            # 清理超过24小时的消息ID记录，防止内存泄漏
+            current_time = datetime.now()
+            expired_msgs = [mid for mid, mtime in processed_messages.items() 
+                          if (current_time - datetime.fromisoformat(mtime)).total_seconds() > 86400]
+            for mid in expired_msgs:
+                del processed_messages[mid]
+        
         if msg_type == "image":
             # 处理图片消息
             media_id = message_data.get("MediaId")
@@ -349,6 +375,10 @@ async def handle_wecom_message(
 # 临时存储交易数据的字典（实际应用中应使用Redis等）
 # 格式: {user_id: {timestamp: transaction_data}}
 pending_transactions = {}
+
+# 临时存储已处理消息ID的集合，用于消息去重
+# 格式: {msg_id: timestamp}
+processed_messages = {}
 
 async def save_pending_transaction(user_id: str, transaction_data: Dict[str, Any]):
     """保存待确认的交易数据"""
