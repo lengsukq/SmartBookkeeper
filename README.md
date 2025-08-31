@@ -1,23 +1,42 @@
 # SmartBookkeeper - 智能记账机器人后端服务
 
+<div align="center">
+  <img src="https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/WeChat%20Work-07C160?style=for-the-badge&logo=wechat&logoColor=white" alt="WeChat Work">
+</div>
+
 SmartBookkeeper 是一个基于 FastAPI 的智能记账机器人后端服务，它能够通过企业微信接收用户发送的图片消息，直接使用大语言模型识别图片中的信息并提取结构化的 JSON 记账数据，最后向用户发送一个交互式卡片进行信息确认。用户确认后，数据将被存入数据库，用户可以通过 Web 页面查看和修改自己的记账记录。
 
 ## 功能特点
 
-- 通过企业微信接收用户发送的图片消息
-- 直接使用大语言模型识别图片中的信息并提取结构化的记账数据
-- 向用户发送交互式卡片进行信息确认
-- 提供带有时效性 JWT Token 的 Web 页面，供用户查看和修改记账记录
-- 使用 SQLite 数据库存储数据
-- 基于 FastAPI 和 SQLAlchemy 2.0 的异步模式构建
+- 📸 通过企业微信接收用户发送的图片消息
+- 🤖 直接使用大语言模型识别图片中的信息并提取结构化的记账数据
+- ✅ 向用户发送交互式卡片进行信息确认
+- 🌐 提供带有时效性 JWT Token 的 Web 页面，供用户查看和修改记账记录
+- 💾 使用 SQLite 数据库存储数据
+- ⚡ 基于 FastAPI 和 SQLAlchemy 2.0 的异步模式构建
+- 🔐 JWT Token 认证机制
+- 📱 响应式 Web 界面，支持移动设备访问
 
 ## 技术栈
 
+### 后端
 - **框架**: FastAPI
 - **数据库**: SQLite (使用 SQLAlchemy 2.0 的异步模式)
 - **认证**: JWT Token
 - **外部服务**: 企业微信 API、大语言模型 API
-- **前端**: Bootstrap 5、JavaScript
+
+### 前端
+- **框架**: Bootstrap 5
+- **语言**: JavaScript
+- **特性**: 响应式设计、模态框交互、Toast 通知
+
+### 开发工具
+- **数据库管理**: SQLite
+- **API 文档**: Swagger UI, ReDoc
+- **代码格式化**: Black, isort
 
 ## 项目结构
 
@@ -44,9 +63,13 @@ SmartBookkeeper/
 │   │   └── ai_service.py        # AI 服务封装
 │   ├── templates/
 │   │   └── index.html       # 前端页面模板
-│   └── static/              # 静态文件目录
+│   ├── static/              # 静态文件目录
+│   └── weworkapi/           # 企业微信 API 封装
 ├── requirements.txt         # 项目依赖
+├── init_db.py               # 数据库初始化脚本
+├── start.bat                # Windows 启动脚本
 ├── .env.example            # 环境变量示例
+├── .gitignore               # Git 忽略文件
 └── README.md               # 项目说明
 ```
 
@@ -203,6 +226,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ### 7. 运行应用
 
+#### 使用命令行运行
+
 ```bash
 python -m uvicorn app.main:app --reload
 ```
@@ -213,6 +238,12 @@ python -m uvicorn app.main:app --reload
 python app/main.py
 ```
 
+#### 使用启动脚本运行 (Windows)
+
+```bash
+start.bat
+```
+
 应用将在 `http://localhost:8000` 上运行。
 
 ## API 文档
@@ -221,6 +252,22 @@ python app/main.py
 
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+### 主要 API 端点
+
+#### 认证相关
+- `POST /api/v1/auth/token` - 根据 user_id 生成一个临时 token
+- `POST /api/v1/auth/token/{user_id}` - 通过路径参数 user_id 生成 token
+
+#### 交易记录相关
+- `GET /api/v1/transactions/` - 获取当前用户的记账列表
+- `POST /api/v1/transactions/` - 创建新的交易记录
+- `PUT /api/v1/transactions/{transaction_id}` - 修改记录
+- `DELETE /api/v1/transactions/{transaction_id}` - 删除记录
+
+#### 企业微信相关
+- `GET /api/v1/wecom/callback` - 用于企业微信服务器验证 URL
+- `POST /api/v1/wecom/callback` - 接收用户消息，处理图片消息并启动记账流程
 
 ## 使用说明
 
@@ -235,7 +282,7 @@ python app/main.py
 2. 注册账号并获取 API Key。
 3. 在 `app/services/ocr_service.py` 中修改 API 调用代码，以适应所选 AI 服务的 API。
 
-### 4. 使用 Web 界面
+### 3. 使用 Web 界面
 
 1. 获取访问 Token：
    - 可以通过调用 `/api/v1/auth/token/{user_id}` 获取测试 Token。
@@ -260,17 +307,37 @@ python app/main.py
 - `created_at`: 创建时间
 - `updated_at`: 更新时间
 
-### API 端点
+### 数据模型示例
 
-- 企业微信相关：
-  - `GET /api/v1/wecom/callback`: 用于企业微信服务器验证 URL
-  - `POST /api/v1/wecom/callback`: 接收用户消息，处理图片消息并启动记账流程
-- 交易记录相关：
-  - `GET /api/v1/transactions/`: 获取当前用户的记账列表
-  - `PUT /api/v1/transactions/{transaction_id}`: 修改记录
-  - `DELETE /api/v1/transactions/{transaction_id}`: 删除记录
-- 认证相关：
-  - `POST /api/v1/auth/token`: 根据 user_id 生成一个临时 token
+```json
+{
+  "id": 1,
+  "user_id": "LengXiaoYing",
+  "amount": 99.99,
+  "vendor": "示例商家",
+  "category": "餐饮",
+  "transaction_date": "2023-09-15",
+  "description": "午餐",
+  "image_url": "/log/LengXiaoYing_1756643688.jpg",
+  "created_at": "2023-09-15T12:34:56",
+  "updated_at": "2023-09-15T12:34:56"
+}
+```
+
+### 外部服务封装
+
+- `wecom_service.py`: 封装与企业微信 API 的交互逻辑
+- `ocr_service.py`: 封装直接使用大语言模型识别图片中的信息并提取结构化记账数据的逻辑
+- `ai_service.py`: 封装与大语言模型 API 的交互逻辑
+
+### 工作流程
+
+1. 用户通过企业微信发送图片消息
+2. 系统接收消息并调用 OCR 服务识别图片内容
+3. AI 服务分析识别结果并提取结构化记账数据
+4. 系统向用户发送交互式卡片进行信息确认
+5. 用户确认后，数据被存入数据库
+6. 用户可以通过 Web 界面查看和管理记账记录
 
 ### 外部服务封装
 
@@ -285,9 +352,43 @@ python app/main.py
 
 欢迎提交 Issue 和 Pull Request！
 
+### 贡献指南
+
+1. Fork 本仓库
+2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 打开一个 Pull Request
+
+### 代码规范
+
+- 遵循 PEP 8 代码风格
+- 使用 Black 进行代码格式化
+- 使用 isort 进行导入排序
+- 为所有新功能添加适当的测试
+
+## 更新日志
+
+### [1.0.0] - 2023-09-15
+
+#### 新增
+- 初始版本发布
+- 基础的企业微信图片识别功能
+- Web 界面用于查看和管理记账记录
+- JWT Token 认证机制
+
 ## 联系方式
 
 如有问题或建议，请通过以下方式联系：
 
 - 提交 Issue
 - 发送邮件至 [your-email@example.com](mailto:your-email@example.com)
+
+## 致谢
+
+感谢以下开源项目和服务：
+
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+- [Bootstrap](https://getbootstrap.com/)
+- [企业微信](https://work.weixin.qq.com/)
