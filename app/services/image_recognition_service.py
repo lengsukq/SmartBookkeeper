@@ -7,6 +7,7 @@ import base64
 from typing import Dict, Any
 from app.config import settings
 from app.services.qianji_service import qianji_service
+from app.constants.prompts import QIANJI_MODE_PROMPT, NORMAL_MODE_PROMPT, SYSTEM_ROLE_PROMPT
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -94,46 +95,10 @@ class ImageRecognitionService:
         # 根据是否启用钱迹模式构建不同的prompt
         if qianji_enabled:
             # 钱迹模式下的prompt，专注于提取type, money, time, remark四种参数
-            prompt = """
-请严格按照以下JSON格式从图片中的收据提取记账信息，不要输出任何JSON之外的内容：
-{
-  "type": 0,
-  "money": 金额（数字类型，如12.99）,
-  "time": "交易日期（YYYY-MM-DD HH:MM:SS格式）",
-  "remark": "备注描述"
-}
-
-要求：
-- type固定为0（支出）
-- 金额必须是数字类型（整数或浮点数），不要包含货币符号
-- 交易日期必须是YYYY-MM-DD HH:MM:SS格式，如果图片中没有日期，请使用当前日期和时间
-- 备注描述要简明扼要，包含商家名称和关键信息
-- 如果信息无法识别，保留对应字段的null值
-- 不要添加任何解释或说明文本
-- 确保输出的内容是合法的JSON格式，不要包含markdown代码块标记
-"""
+            prompt = QIANJI_MODE_PROMPT
         else:
             # 普通模式下的prompt
-            prompt = """
-请严格按照以下JSON格式从图片中的收据提取记账信息，不要输出任何JSON之外的内容：
-{
-  "amount": 金额（数字类型，如12.99）,
-  "vendor": "商家名称",
-  "category": "消费类别（如餐饮、交通、购物、娱乐、医疗、教育等）",
-  "transaction_date": "交易日期（YYYY-MM-DD格式）",
-  "description": "摘要描述"
-}
-
-要求：
-- 金额必须是数字类型（整数或浮点数），不要包含货币符号
-- 交易日期必须是YYYY-MM-DD格式，如果图片中没有日期，请使用当前日期
-- 商家名称要简洁准确，去除多余的广告语
-- 消费类别请选择最贴近的一项：餐饮、交通、购物、娱乐、医疗、教育、住房、通讯、其他
-- 摘要描述要简明扼要，突出关键信息
-- 如果信息无法识别，保留对应字段的null值
-- 不要添加任何解释或说明文本
-- 确保输出的内容是合法的JSON格式，不要包含markdown代码块标记
-"""
+            prompt = NORMAL_MODE_PROMPT
         
         # 构建请求数据，使用多模态格式
         request_data = {
@@ -141,7 +106,7 @@ class ImageRecognitionService:
             "messages": [
                 {
                     "role": "system",
-                    "content": "你是一个专业的记账助手，擅长从收据图片中提取结构化的记账信息。严格按照要求返回JSON格式数据，不包含任何解释文本。"
+                    "content": SYSTEM_ROLE_PROMPT
                 },
                 {
                     "role": "user",
