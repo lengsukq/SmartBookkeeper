@@ -6,6 +6,7 @@ import uuid
 import base64
 from typing import Dict, Any
 from app.config import settings
+from app.services.qianji_service import qianji_service
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -21,6 +22,11 @@ class ImageRecognitionService:
         """直接使用大模型识别图片中的文本并提取结构化记账信息"""
         # 记录接收到的用户信息
         logger.info("收到新的图片识别请求，开始处理")
+        
+        # 检查是否启用钱迹模式
+        qianji_enabled = getattr(settings, 'QIANJI_ENABLED', False)
+        if qianji_enabled:
+            logger.info("钱迹模式已启用，将生成钱迹记账链接")
         
         # 如果没有提供图片路径，则创建临时文件保存图片
         if image_path is None:
@@ -81,8 +87,34 @@ class ImageRecognitionService:
         
     async def _process_image_with_ai(self, image_base64: str) -> Dict[str, Any]:
         """直接使用大模型识别图片并提取结构化记账信息"""
-        # 构建精准的prompt，严格限制大模型输出结构化的记账信息
-        prompt = """
+        # 检查是否启用钱迹模式
+        qianji_enabled = getattr(settings, 'QIANJI_ENABLED', False)
+        qianji_cate_choose = getattr(settings, 'QIANJI_CATE_CHOOSE', True)
+        
+        # 根据是否启用钱迹模式构建不同的prompt
+        if qianji_enabled:
+            # 钱迹模式下的prompt，专注于提取type, money, time, remark四种参数
+            prompt = """
+请严格按照以下JSON格式从图片中的收据提取记账信息，不要输出任何JSON之外的内容：
+{
+  "type": 0,
+  "money": 金额（数字类型，如12.99）,
+  "time": "交易日期（YYYY-MM-DD HH:MM:SS格式）",
+  "remark": "备注描述"
+}
+
+要求：
+- type固定为0（支出）
+- 金额必须是数字类型（整数或浮点数），不要包含货币符号
+- 交易日期必须是YYYY-MM-DD HH:MM:SS格式，如果图片中没有日期，请使用当前日期和时间
+- 备注描述要简明扼要，包含商家名称和关键信息
+- 如果信息无法识别，保留对应字段的null值
+- 不要添加任何解释或说明文本
+- 确保输出的内容是合法的JSON格式，不要包含markdown代码块标记
+"""
+        else:
+            # 普通模式下的prompt
+            prompt = """
 请严格按照以下JSON格式从图片中的收据提取记账信息，不要输出任何JSON之外的内容：
 {
   "amount": 金额（数字类型，如12.99）,
@@ -183,6 +215,21 @@ class ImageRecognitionService:
                         if ai_response.startswith("{") and ai_response.endswith("}"):
                             parsed_data = json.loads(ai_response)
                             logger.info(f"成功解析AI返回的JSON数据: {parsed_data}")
+                            
+                            # 如果启用了钱迹模式，生成钱迹记账链接
+                            if qianji_enabled:
+                                # 格式化数据以适配钱迹
+                                qianji_data = qianji_service.format_transaction_data(parsed_data)
+                                # 生成钱迹记账链接
+                                qianji_url = qianji_service.generate_qianji_url(qianji_data)
+                                
+                                # 添加钱迹记账链接到返回结果
+                                parsed_data["qianji_url"] = qianji_url
+                                parsed_data["qianji_enabled"] = True
+                                parsed_data["catechoose"] = qianji_cate_choose
+                                
+                                logger.info(f"钱迹模式已启用，生成记账链接: {qianji_url}")
+                            
                             return parsed_data
                         
                         # 如果AI返回的不是纯JSON，尝试从中提取JSON部分
@@ -193,6 +240,21 @@ class ImageRecognitionService:
                             json_str = ai_response[start_idx:end_idx]
                             parsed_data = json.loads(json_str)
                             logger.info(f"成功提取并解析JSON数据: {parsed_data}")
+                            
+                            # 如果启用了钱迹模式，生成钱迹记账链接
+                            if qianji_enabled:
+                                # 格式化数据以适配钱迹
+                                qianji_data = qianji_service.format_transaction_data(parsed_data)
+                                # 生成钱迹记账链接
+                                qianji_url = qianji_service.generate_qianji_url(qianji_data)
+                                
+                                # 添加钱迹记账链接到返回结果
+                                parsed_data["qianji_url"] = qianji_url
+                                parsed_data["qianji_enabled"] = True
+                                parsed_data["catechoose"] = qianji_cate_choose
+                                
+                                logger.info(f"钱迹模式已启用，生成记账链接: {qianji_url}")
+                            
                             return parsed_data
                         
                         # 如果无法提取JSON，返回错误信息

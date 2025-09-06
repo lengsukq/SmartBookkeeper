@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     AI_API_BASE_URL: str = "https://api.openai.com/v1"
     AI_MODEL_NAME: str = "gpt-3.5-turbo"
     
+    # Qianji Configuration
+    QIANJI_ENABLED: bool = False
+    QIANJI_CATE_CHOOSE: bool = True
 
     # Penetration URL Configuration
     PENETRATE_URL: str = "http://localhost:8000"

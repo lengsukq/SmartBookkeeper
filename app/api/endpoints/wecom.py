@@ -198,21 +198,40 @@ async def handle_wecom_message(
                 error_msg = recognition_result.get('error', '图片识别失败，无法识别图片中的文本')
                 await wecom_service.send_text_message(user_id, f"识别失败：{error_msg}")
             else:
-                # OCR识别成功，处理交易数据
-                transaction_data = ocr_result
+                # 检查是否启用了钱迹模式
+                qianji_enabled = getattr(settings, 'QIANJI_ENABLED', False)
                 
-                # 为交易数据添加当前时间作为默认交易日期
-                if 'transaction_date' not in transaction_data or not transaction_data['transaction_date']:
-                    transaction_data['transaction_date'] = datetime.now().strftime('%Y-%m-%d')
-                
-                # 保存待确认的交易数据
-                transaction_timestamp = await save_pending_transaction(user_id, transaction_data)
-                
-                # 添加交易标识到数据中，用于后续确认
-                transaction_data['transaction_id'] = transaction_timestamp
-                
-                # 发送确认卡片
-                await wecom_service.send_confirmation_card(user_id, transaction_data)
+                if qianji_enabled and recognition_result.get('qianji_enabled', False):
+                    # 钱迹模式已启用，直接返回识别结果和钱迹记账链接
+                    qianji_url = recognition_result.get('qianji_url', '')
+                    catechoose = recognition_result.get('catechoose', True)
+                    
+                    # 构建钱迹记账链接消息
+                    if qianji_url:
+                        if catechoose:
+                            message = f"已识别记账信息，请点击链接记账：\n{qianji_url}"
+                        else:
+                            message = f"已识别记账信息，请点击链接记账（已跳过分类选择）：\n{qianji_url}"
+                        await wecom_service.send_text_message(user_id, message)
+                    else:
+                        await wecom_service.send_text_message(user_id, "识别成功，但生成钱迹记账链接失败，请重试。")
+                else:
+                    # 普通模式，走原来的确认流程
+                    # OCR识别成功，处理交易数据
+                    transaction_data = recognition_result
+                    
+                    # 为交易数据添加当前时间作为默认交易日期
+                    if 'transaction_date' not in transaction_data or not transaction_data['transaction_date']:
+                        transaction_data['transaction_date'] = datetime.now().strftime('%Y-%m-%d')
+                    
+                    # 保存待确认的交易数据
+                    transaction_timestamp = await save_pending_transaction(user_id, transaction_data)
+                    
+                    # 添加交易标识到数据中，用于后续确认
+                    transaction_data['transaction_id'] = transaction_timestamp
+                    
+                    # 发送确认卡片
+                    await wecom_service.send_confirmation_card(user_id, transaction_data)
             
             # 返回成功响应
             response_data = {"status": "success"}
